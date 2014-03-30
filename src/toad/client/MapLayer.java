@@ -63,9 +63,9 @@ public class MapLayer {
 	}
 
 	// Paint layer at location x,y with current Brush
-	public void set(int x, int y, Brush brush) {
+	public void set(int x, int y) {
 		if (!isOutOfBounds(x, y)) {
-			
+			Brush brush = ToolBox.getInstance().getBrush();
 			// Check if brush is a single tile
 			if (brush.isSingleTile()) {
 				data[x][y] = brush.getTile();

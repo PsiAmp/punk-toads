@@ -38,7 +38,6 @@ public class MapEditor {
 	private boolean isMouseDown = false;
 	
 	private MapLayerHolder mapLayerHolder;
-	private Brush brush;
 	private EditorToolset editorToolset; 
 	
 	public MapEditor(int canvasWidth, int canvasHeight) {
@@ -191,17 +190,13 @@ public class MapEditor {
 			currentTileY = tileY;
 			
 			if (editorToolset.getTool() == Tool.BRUSH)
-				activeLayer.set(tileX, tileY, brush);
+				activeLayer.set(tileX, tileY);
 			else if (editorToolset.getTool() == Tool.ERASER)
 				activeLayer.erase(tileX, tileY);
 			
 			updateBuffer = true;
 			updateLayerBuffer = true;
 		}
-	}
-
-	public void setBrush(Brush brush) {
-		this.brush = brush;
 	}
 
 }

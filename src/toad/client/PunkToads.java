@@ -15,8 +15,7 @@ public class PunkToads implements EntryPoint {
 		
 		TileSet standartTileSet = new TileSet("/standard2_transparent.png", 16);
 		
-		Brush brush = new Brush();
-		brush.setTileSet(standartTileSet);
+		ToolBox.getInstance().getBrush().setTileSet(standartTileSet);
 		
 		MapLayer backgroundLayer = new MapLayer(800, 500, standartTileSet);
 		backgroundLayer.setName("Background");
@@ -31,10 +30,8 @@ public class PunkToads implements EntryPoint {
 		mapEditor.addLayer(backgroundLayer);
 		mapEditor.addLayer(middleLayer);
 		mapEditor.addLayer(foregroundLayer);
-		mapEditor.setBrush(brush);
 
 		TilePicker tilePicker = new TilePicker(standartTileSet);
-		tilePicker.setBrush(brush);
 		
 		mapEditor.start();
 		tilePicker.start();

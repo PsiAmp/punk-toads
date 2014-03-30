@@ -27,7 +27,6 @@ public class TilePicker {
 	private SelectionHighlight highlight;
 
 	private TileSet activeTileset;
-	private Brush brush;
 
 	public TilePicker(TileSet tileSet) {
 
@@ -124,6 +123,8 @@ public class TilePicker {
 			int startY = y1 / tileSize;
 			int tileInRow = activeTileset.getTilesX();
 			
+			Brush brush = ToolBox.getInstance().getBrush();
+			
 			// if single tile set Brush in non-array mode
 			if (yTiles == 1 && xTiles == 1) {
 				brush.setTile(startX + startY * tileInRow);
@@ -194,9 +195,4 @@ public class TilePicker {
 		});
 
 	}
-
-	public void setBrush(Brush brush) {
-		this.brush = brush;
-	}
-
 }
