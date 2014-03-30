@@ -123,6 +123,18 @@ public class MapLayer {
 			}
 		}
 	}
+	
+	public void erase(int tileX, int tileY) {
+		int eraserSize = ToolBox.getInstance().getEraser().getSize();
+		
+		if (eraserSize == 1) {
+			data[tileX][tileY] = EMPTY_CELL;
+		} else {
+			for (int i = 0; i < eraserSize; i++) {
+				Arrays.fill(data[tileX + i], tileY, tileY + eraserSize, EMPTY_CELL);	
+			}
+		}
+	}
 
 	public int getWidth() {
 		return width;
@@ -146,10 +158,5 @@ public class MapLayer {
 
 	public void setName(String name) {
 		this.name = name;
-	}
-
-
-	public void erase(int tileX, int tileY) {
-		data[tileX][tileY] = EMPTY_CELL;
 	}
 }

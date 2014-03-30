@@ -189,10 +189,11 @@ public class MapEditor {
 			currentTileX = tileX;
 			currentTileY = tileY;
 			
-			if (editorToolset.getTool() == Tool.BRUSH)
+			if (editorToolset.getTool() == Tool.BRUSH) {
 				activeLayer.set(tileX, tileY);
-			else if (editorToolset.getTool() == Tool.ERASER)
-				activeLayer.erase(tileX, tileY);
+			} else if (editorToolset.getTool() == Tool.ERASER) {
+					activeLayer.erase(tileX, tileY);
+			}
 			
 			updateBuffer = true;
 			updateLayerBuffer = true;

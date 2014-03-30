@@ -1,7 +1,10 @@
 package toad.client;
 
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.ToggleButton;
 
@@ -11,40 +14,60 @@ public class EditorToolset {
 		BRUSH, ERASER
 	};
 
-	ToggleButton brush;
-	ToggleButton eraser;
+	ToggleButton brushButton;
+	ToggleButton eraserButton;
+	ListBox eraserSizeBox;
 	
 	private Tool tool = Tool.BRUSH;
 
 	public EditorToolset() {
-		brush = new ToggleButton("Brush");
-		eraser = new ToggleButton("Eraser");
+		brushButton = new ToggleButton("Brush");
+		eraserButton = new ToggleButton("Eraser");
 
-		brush.setDown(true);
-		eraser.setDown(false);
+		brushButton.setDown(true);
+		eraserButton.setDown(false);
+		
+		brushButton.setWidth("80px");
+		eraserButton.setWidth("80px");
+		
+		eraserSizeBox = new ListBox();
+		for (int i = 1; i < 6; i++) {
+			eraserSizeBox.addItem("" + i);
+		}
+		
+		eraserSizeBox.setSelectedIndex(0);
 
-		brush.addClickHandler(new ClickHandler() {
+		brushButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
 				tool = Tool.BRUSH;
-				brush.setDown(true);
-				eraser.setDown(false);
+				brushButton.setDown(true);
+				eraserButton.setDown(false);
 			}
 		});
 
-		eraser.addClickHandler(new ClickHandler() {
+		eraserButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
 				tool = Tool.ERASER;
-				eraser.setDown(true);
-				brush.setDown(false);
+				eraserButton.setDown(true);
+				brushButton.setDown(false);
 			}
 		});
 
-		RootPanel.get("tools").add(brush);
-		RootPanel.get("tools").add(eraser);
+		eraserSizeBox.addChangeHandler( new ChangeHandler() {
+			@Override
+			public void onChange(ChangeEvent event) {
+				int eraserSize = eraserSizeBox.getSelectedIndex() + 1;
+				ToolBox.getInstance().getEraser().setSize(eraserSize);
+			}
+		});
+		
+		RootPanel.get("tools").add(brushButton);
+		RootPanel.get("tools").add(eraserButton);
+		RootPanel.get("tools").add(eraserSizeBox);
 	}
-
+	
 	public Tool getTool() {
 		return tool;
 	}
