@@ -1,6 +1,7 @@
 package toad.client;
 
 import toad.client.EditorToolset.Tool;
+import toad.client.tools.Brush;
 
 import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context2d;
@@ -32,24 +33,28 @@ public class MapEditor {
 	private MapLayer activeLayer;
 	private int currentTileX;
 	private int currentTileY;
+	private int startTileX;
+	private int startTileY;
 
+	private CursorOverlay cursorOverlay;
 	private Grid grid;
 
 	private boolean isMouseDown = false;
-	
+
 	private MapLayerHolder mapLayerHolder;
-	private EditorToolset editorToolset; 
-	
+	private EditorToolset editorToolset;
+
 	public MapEditor(int canvasWidth, int canvasHeight) {
 		this.canvasHeight = canvasHeight;
 		this.canvasWidth = canvasWidth;
 
+		cursorOverlay = new CursorOverlay(canvasWidth, canvasHeight);
 		grid = new Grid(canvasWidth, canvasHeight);
 
 		bufferedCanvas = new BufferedCanvas(canvasWidth, canvasHeight);
 
 		RootPanel.get("mapContainer").add(bufferedCanvas.getCanvas());
-		
+
 		editorToolset = new EditorToolset();
 
 		registerMouseEvents();
@@ -62,7 +67,7 @@ public class MapEditor {
 				currentTileX = -1;
 			}
 		});
-		
+
 		canvasUpdateTimer = new Timer() {
 			@Override
 			public void run() {
@@ -107,19 +112,19 @@ public class MapEditor {
 			ctx.setFillStyle(CssColors.LIGHT_GREY);
 			ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 			ctx.restore();
-			
-			int i=0;
+
+			int i = 0;
 			for (MapLayer layer : mapLayerHolder.getMapLayerList()) {
 				if (updateLayerBuffer) {
 					layer.draw();
 				}
 				double shift = 0;
 				if (i == 0 || i == 2) {
-					shift = perspective/(canvasWidth/2/layer.getTileSize());
+					shift = perspective / (canvasWidth / 2 / layer.getTileSize());
 					if (i == 0)
 						shift *= -1;
 				}
-				
+
 				ctx.drawImage(layer.getContext().getCanvas(), shift, 0);
 				i++;
 			}
@@ -130,6 +135,8 @@ public class MapEditor {
 			updateBuffer = false;
 			updateLayerBuffer = false;
 		}
+		
+		ctx.drawImage(cursorOverlay.getContext2d().getCanvas(), 0, 0);
 		bufferedCanvas.flushBuffer();
 	}
 
@@ -147,23 +154,10 @@ public class MapEditor {
 			@Override
 			public void onMouseDown(MouseDownEvent event) {
 				isMouseDown = true;
-				mouseAction(event.getX(), event.getY());
-			}
-		});
+				startTileX = eventToTileX(event.getX());
+				startTileY = eventToTileY(event.getY());
 
-		canvas.addMouseMoveHandler(new MouseMoveHandler() {
-			int mid = canvasWidth / 2;
-			@Override
-			public void onMouseMove(MouseMoveEvent event) {
-				if (isMouseDown) {
-					mouseAction(event.getX(), event.getY());
-				}
-				if (event.isControlKeyDown()) {
-					perspective = event.getX() - mid;
-					updateBuffer = true;
-				} else {
-					perspective = 0;
-				}
+				mouseAction(startTileX, startTileY);
 			}
 		});
 
@@ -173,31 +167,58 @@ public class MapEditor {
 				isMouseDown = false;
 			}
 		});
-		
-		canvas.addMouseOutHandler( new MouseOutHandler() {
+
+		canvas.addMouseOutHandler(new MouseOutHandler() {
 			@Override
 			public void onMouseOut(MouseOutEvent event) {
 				isMouseDown = false;
 			}
 		});
+
+		canvas.addMouseMoveHandler(new MouseMoveHandler() {
+			int mid = canvasWidth / 2;
+
+			@Override
+			public void onMouseMove(MouseMoveEvent e) {
+				
+				cursorOverlay.repaint(editorToolset.getTool(), e.getX(), e.getY(), 16);
+				
+				if (isMouseDown) {
+					mouseAction(eventToTileX(e.getX()), eventToTileY(e.getY()));
+				}
+				if (e.isControlKeyDown()) {
+					perspective = e.getX() - mid;
+					updateBuffer = true;
+				} else {
+					perspective = 0;
+				}
+			}
+		});
+
 	}
 
-	private void mouseAction(int x, int y) {
-		int tileX = eventToTileX(x);
-		int tileY = eventToTileY(y);
+	private void mouseAction(int tileX, int tileY) {
 		if (tileX != currentTileX || tileY != currentTileY) {
 			currentTileX = tileX;
 			currentTileY = tileY;
-			
+
 			if (editorToolset.getTool() == Tool.BRUSH) {
-				activeLayer.set(tileX, tileY);
+				Brush brush = ToolBox.getInstance().getBrush();
+				if (brush.isStampModeEnabled()) {
+					int width = brush.getWidth();
+					int height = brush.getHeight();
+					if ((startTileX - tileX) % width == 0 && (startTileY - tileY) % height == 0) {
+						activeLayer.set(tileX, tileY);
+					}
+				} else {
+					activeLayer.set(tileX, tileY);
+				}
 			} else if (editorToolset.getTool() == Tool.ERASER) {
-					activeLayer.erase(tileX, tileY);
+				activeLayer.erase(tileX, tileY);
 			}
-			
+
 			updateBuffer = true;
 			updateLayerBuffer = true;
 		}
 	}
-
 }

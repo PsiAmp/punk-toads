@@ -2,6 +2,8 @@ package toad.client;
 
 import java.util.Arrays;
 
+import toad.client.tools.Brush;
+
 import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.dom.client.ImageElement;
@@ -123,15 +125,15 @@ public class MapLayer {
 			}
 		}
 	}
-	
+
 	public void erase(int tileX, int tileY) {
 		int eraserSize = ToolBox.getInstance().getEraser().getSize();
-		
+
 		if (eraserSize == 1) {
 			data[tileX][tileY] = EMPTY_CELL;
 		} else {
 			for (int i = 0; i < eraserSize; i++) {
-				Arrays.fill(data[tileX + i], tileY, tileY + eraserSize, EMPTY_CELL);	
+				Arrays.fill(data[tileX + i], tileY, tileY + eraserSize, EMPTY_CELL);
 			}
 		}
 	}
