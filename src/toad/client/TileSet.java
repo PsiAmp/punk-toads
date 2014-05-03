@@ -19,7 +19,7 @@ public class TileSet {
 
 	public TileSet(String path, int tileSize) {
 		this.tileSize = tileSize;
-		img = new Image(path);
+		img = new Image();
 
 		// TODO add to a hidden block
 		RootPanel.get("resourceLoader").add(img);
@@ -31,8 +31,15 @@ public class TileSet {
 				initImageParameters(imgElement.getWidth(), imgElement.getHeight());
 			}
 		});
+		
+		img.setUrl(path);
 	}
 
+	private void initImg(String path) {
+		// TODO: test new Image loading
+		//ImageElement imgElement = Imag
+	}
+	
 	private void initImageParameters(int width, int height) {
 		this.width = width;
 		this.height = height;

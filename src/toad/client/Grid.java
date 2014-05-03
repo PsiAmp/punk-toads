@@ -1,34 +1,25 @@
 package toad.client;
 
-import com.google.gwt.canvas.client.Canvas;
+import toad.client.render.CanvasLayer;
+import toad.client.util.CssColors;
+
 import com.google.gwt.canvas.dom.client.Context2d;
 
 public class Grid {
 
-	private boolean dashed = true;
+	private boolean dashed = false;
 	private int stepX = 16;
 	private int stepY = 16;
 	private int startX = 0;
 	private int startY = 0;
 	private int width;
 	private int height;
-	private Canvas cvs;
-	private Context2d ctx;
+	private CanvasLayer canvasLayer;
 
 	public Grid(int width, int height) {
 		this.width = width;
 		this.height = height;
-		
-		cvs = Canvas.createIfSupported();
-		
-		cvs.setWidth(width + "px");
-		cvs.setHeight(height + "px");
-		cvs.setCoordinateSpaceWidth(width);
-		cvs.setCoordinateSpaceHeight(height);
-		
-		ctx = cvs.getContext2d();
-		ctx.translate(0.5, 0.5);
-		
+		canvasLayer = new CanvasLayer(width, height);
 		drawGrid();
 	}
 
@@ -42,22 +33,20 @@ public class Grid {
 		this.stepY = stepY;		
 	}
 	
-	public Context2d getContext() {
-		return ctx;
-	}
-	
-	// TODO change to buffered image method
 	private void drawGrid() {
+		Context2d ctx = canvasLayer.getContext();
+		
 		ctx.save();
+		ctx.translate(0.5, 0.5);
 		ctx.setStrokeStyle(CssColors.BLACK);
 		ctx.setLineWidth(1);
-
+		
 		ctx.beginPath();
 
 		// Horizontal grid lines
 		for (int i = startX; i < height; i += stepY) {
 			if (dashed) {
-				drawDashedLine(startX, i, width, 2, 2, true);
+				drawDashedLine(startX, i, width, 2, 2, true, ctx);
 			} else {
 				ctx.moveTo(startX, i);
 				ctx.lineTo(width, i);
@@ -67,22 +56,21 @@ public class Grid {
 		// Vertical grid lines
 		for (int i = startY; i < width; i += stepX) {
 			if (dashed) {
-				drawDashedLine(i, startY, height, 2, 2, false);
+				drawDashedLine(i, startY, height, 2, 2, false, ctx);
 			} else {
 				ctx.moveTo(i, startY);
 				ctx.lineTo(i, height);
 			}
 
 		}
-
-		ctx.closePath();
+		
 		ctx.stroke();
 		ctx.restore();
 	}
 
 	// draws vertical or horizontal dashed line
 	// TODO change to buffered image
-	private void drawDashedLine(int x, int y, int length, int dash, int space, boolean horizontal) {
+	private void drawDashedLine(int x, int y, int length, int dash, int space, boolean horizontal, Context2d ctx) {
 		if (horizontal)
 			while (x < length) {
 				ctx.moveTo(x, y);
@@ -99,4 +87,14 @@ public class Grid {
 			}
 	}
 
+	public Context2d getContext() {
+		return canvasLayer.getContext();
+	}
+
+	public CanvasLayer getCanvasLayer() {
+		return canvasLayer;
+	}
+	
+	
+	
 }

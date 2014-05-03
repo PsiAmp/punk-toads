@@ -9,23 +9,23 @@ import com.google.gwt.user.client.ui.RootPanel;
 public class MapLayerHolder {
 
 	private ListBox layerBox;
-	private ArrayList<MapLayer> mapLayerList = new ArrayList<>();
+	private ArrayList<TileLayer> mapLayerList = new ArrayList<>();
 	
 	public MapLayerHolder() {
 		layerBox = new ListBox();
 		RootPanel.get("layerSelector").add(layerBox);
 	}
 	
-	public void addlayer(MapLayer layer) {
+	public void addlayer(TileLayer layer) {
 		mapLayerList.add(layer);
 		layerBox.addItem(layer.getName());
 	}
 	
-	public MapLayer getActiveLayer() {
+	public TileLayer getActiveLayer() {
 		return mapLayerList.get(layerBox.getSelectedIndex());
 	}
 
-	public ArrayList<MapLayer> getMapLayerList() {
+	public ArrayList<TileLayer> getMapLayerList() {
 		return mapLayerList;
 	}
 

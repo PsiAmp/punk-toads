@@ -1,5 +1,7 @@
 package toad.client;
 
+import toad.client.util.CssColors;
+
 import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context2d;
 

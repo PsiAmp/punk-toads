@@ -1,7 +1,10 @@
 package toad.client;
 
 import toad.client.EditorToolset.Tool;
+import toad.client.render.CanvasLayer;
+import toad.client.render.CanvasLayerSystem;
 import toad.client.tools.Brush;
+import toad.client.util.CssColors;
 
 import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context2d;
@@ -22,15 +25,20 @@ public class MapEditor {
 
 	private double perspective = 0;
 	private boolean gridEnabled = true;
-	private BufferedCanvas bufferedCanvas;
+	// private BufferedCanvas bufferedCanvas;
+	private CanvasLayer rootCanvasLayer;
+	private CanvasLayer backgroundCanvasLayer;
+	private CanvasLayer mapCanvasLayer;
+	private CanvasLayerSystem mainCanvasSystem;
+	private CanvasLayerSystem mapCanvasSystem;
 	private int canvasHeight;
 	private int canvasWidth;
 	private Timer canvasUpdateTimer;
-	private boolean updateBuffer = true;
-	private boolean updateLayerBuffer = true;
+	// private boolean updateBuffer = true;
+	// private boolean updateLayerBuffer = true;
 
 	// TODO change some time
-	private MapLayer activeLayer;
+	private TileLayer activeLayer;
 	private int currentTileX;
 	private int currentTileY;
 	private int startTileX;
@@ -51,9 +59,27 @@ public class MapEditor {
 		cursorOverlay = new CursorOverlay(canvasWidth, canvasHeight);
 		grid = new Grid(canvasWidth, canvasHeight);
 
-		bufferedCanvas = new BufferedCanvas(canvasWidth, canvasHeight);
+		// bottom Canvas everyone draws here
+		rootCanvasLayer = new CanvasLayer(canvasWidth, canvasHeight);
 
-		RootPanel.get("mapContainer").add(bufferedCanvas.getCanvas());
+		// Grey background
+		backgroundCanvasLayer = new CanvasLayer(canvasWidth, canvasHeight);
+		drawBackground();
+
+		// Tiles are drawn here
+		mapCanvasLayer = new CanvasLayer(canvasWidth, canvasHeight);
+
+		mapCanvasSystem = new CanvasLayerSystem();
+		mapCanvasSystem.addLayer(mapCanvasLayer);
+
+		mainCanvasSystem = new CanvasLayerSystem();
+		// mainCanvasSystem.addLayer(mainCanvasLayer);
+		mainCanvasSystem.addLayer(backgroundCanvasLayer);
+		mainCanvasSystem.addLayer(mapCanvasSystem);
+		mainCanvasSystem.addLayer(grid.getCanvasLayer());
+		// mainCanvasSystem.addLayer(cursorOverlay.getCanvasLayer());
+
+		RootPanel.get("mapContainer").add(rootCanvasLayer.getCanvas());
 
 		editorToolset = new EditorToolset();
 
@@ -76,9 +102,17 @@ public class MapEditor {
 		};
 	}
 
-	public void addLayer(MapLayer layer) {
+	private void drawBackground() {
+		Context2d ctx = backgroundCanvasLayer.getContext();
+		ctx.translate(0.5, 0.5);
+		ctx.setFillStyle(CssColors.LIGHT_GREY);
+		ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+	}
+
+	public void addMapLayer(TileLayer layer) {
 		mapLayerHolder.addlayer(layer);
 		activeLayer = mapLayerHolder.getActiveLayer();
+		mapCanvasSystem.addLayer(layer.getCanvasLayer());
 	}
 
 	private int eventToTileX(int x) {
@@ -103,41 +137,35 @@ public class MapEditor {
 	}
 
 	public void render() {
-		Context2d ctx = bufferedCanvas.getContextBuffer();
-		if (updateBuffer) {
-			ctx.save();
-			// Coordinate translation so brush draws from 0,0 coordinate.
-			ctx.translate(0.5, 0.5);
+		Context2d ctx = rootCanvasLayer.getContext();
+		mainCanvasSystem.draw(ctx);
 
-			ctx.setFillStyle(CssColors.LIGHT_GREY);
-			ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-			ctx.restore();
-
-			int i = 0;
-			for (MapLayer layer : mapLayerHolder.getMapLayerList()) {
-				if (updateLayerBuffer) {
-					layer.draw();
-				}
-				double shift = 0;
-				if (i == 0 || i == 2) {
-					shift = perspective / (canvasWidth / 2 / layer.getTileSize());
-					if (i == 0)
-						shift *= -1;
-				}
-
-				ctx.drawImage(layer.getContext().getCanvas(), shift, 0);
-				i++;
-			}
-
-			if (gridEnabled) {
-				ctx.drawImage(grid.getContext().getCanvas(), 0, 0);
-			}
-			updateBuffer = false;
-			updateLayerBuffer = false;
+		for (TileLayer layer : mapLayerHolder.getMapLayerList()) {
+			if (layer.isNeedRedraw())
+				layer.draw();
 		}
-		
-		ctx.drawImage(cursorOverlay.getContext2d().getCanvas(), 0, 0);
-		bufferedCanvas.flushBuffer();
+
+		// if (updateBuffer) {
+		// int i = 0;
+		// for (MapLayer layer : mapLayerHolder.getMapLayerList()) {
+		// if (updateLayerBuffer) {
+		// layer.draw();
+		// }
+		// double shift = 0;
+		// if (i == 0 || i == 2) {
+		// shift = perspective / (canvasWidth / 2 / layer.getTileSize());
+		// if (i == 0)
+		// shift *= -1;
+		// }
+		//
+		// ctx.drawImage(layer.getContext().getCanvas(), shift, 0);
+		// i++;
+		// }
+		//
+		// updateBuffer = false;
+		// updateLayerBuffer = false;
+		// }
+
 	}
 
 	public boolean isGrid() {
@@ -149,7 +177,8 @@ public class MapEditor {
 	}
 
 	private void registerMouseEvents() {
-		Canvas canvas = bufferedCanvas.getCanvas();
+		Canvas canvas = rootCanvasLayer.getCanvas();
+
 		canvas.addMouseDownHandler(new MouseDownHandler() {
 			@Override
 			public void onMouseDown(MouseDownEvent event) {
@@ -180,15 +209,15 @@ public class MapEditor {
 
 			@Override
 			public void onMouseMove(MouseMoveEvent e) {
-				
+
 				cursorOverlay.repaint(editorToolset.getTool(), e.getX(), e.getY(), 16);
-				
+
 				if (isMouseDown) {
 					mouseAction(eventToTileX(e.getX()), eventToTileY(e.getY()));
 				}
 				if (e.isControlKeyDown()) {
 					perspective = e.getX() - mid;
-					updateBuffer = true;
+					// updateBuffer = true;
 				} else {
 					perspective = 0;
 				}
@@ -216,9 +245,6 @@ public class MapEditor {
 			} else if (editorToolset.getTool() == Tool.ERASER) {
 				activeLayer.erase(tileX, tileY);
 			}
-
-			updateBuffer = true;
-			updateLayerBuffer = true;
 		}
 	}
 }

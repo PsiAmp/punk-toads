@@ -1,5 +1,6 @@
 package toad.client;
 
+import toad.client.render.BufferedCanvas;
 import toad.client.tools.Brush;
 
 import com.google.gwt.canvas.client.Canvas;
@@ -63,9 +64,10 @@ public class TilePicker {
 	}
 
 	public void render() {
+		Context2d ctx = bufferedCanvas.getContextBuffer();
 		if (updateBuffer) {
 			bufferedCanvas.clearBuffer();
-			Context2d ctx = bufferedCanvas.getContextBuffer();
+			
 
 			ImageElement imageElement = activeTileset.getImgElement();
 			if (imageElement != null) {
@@ -79,7 +81,7 @@ public class TilePicker {
 
 			updateBuffer = false;
 		}
-
+		
 		bufferedCanvas.flushBuffer();
 	}
 

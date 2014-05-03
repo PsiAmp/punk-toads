@@ -1,4 +1,4 @@
-package toad.client;
+package toad.client.render;
 
 import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context2d;

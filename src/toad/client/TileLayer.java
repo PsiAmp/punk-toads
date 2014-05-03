@@ -2,47 +2,46 @@ package toad.client;
 
 import java.util.Arrays;
 
-import toad.client.tools.Brush;
-
-import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.dom.client.ImageElement;
 
-public class MapLayer {
+import toad.client.render.CanvasLayer;
+import toad.client.tools.Brush;
+
+public class TileLayer {
 	private final static String zeroWidthHeightErrorMessage = "ERROR: Can't init layer. Width or height is 0.";
 	private final static String outOfBoundsErrorMessage = "ERROR: Index is out of bounds.";
 	public final static int EMPTY_CELL = -1;
 
-	private int width;
-	private int height;
-	private TileSet tileSet;
+	// in tiles
+	private int tilesX;
+	private int tilesY;
+	private TileSet tileset;
 
 	public int[][] data;
 
 	private String name = "";
-	private Canvas cvs;
-	private Context2d ctx;
+	private CanvasLayer canvasLayer;
+	
+	private boolean needRedraw = true;
 
-	public MapLayer(int width, int height, TileSet tileSet) {
-		this.tileSet = tileSet;
-		resize(width, height);
-
-		cvs = Canvas.createIfSupported();
-
-		cvs.setWidth(width + "px");
-		cvs.setHeight(height + "px");
-		cvs.setCoordinateSpaceWidth(width);
-		cvs.setCoordinateSpaceHeight(height);
-
-		ctx = cvs.getContext2d();
+	public TileLayer(int tilesX, int tilesY, TileSet tileSet) {
+		this.tileset = tileSet;
+		this.tilesX = tilesX;
+		this.tilesY = tilesY;
+		init();
+		canvasLayer = new CanvasLayer(tilesX * tileset.getTileSize(), tilesY * tileset.getTileSize());
 	}
 
 	public void draw() {
-		ctx.clearRect(0, 0, width, height);
+		int tileSize = tileset.getTileSize();
+		int tilesInRow = tileset.getTilesX();
 
-		int tileSize = getTileSize();
-		int tilesInRow = getTileSet().getTilesX();
-
+		ImageElement img = tileset.getImgElement();
+		
+		canvasLayer.clear();
+		Context2d ctx = canvasLayer.getContext();
+		
 		for (int i = 0; i < data.length; i++) {
 			int x = i * tileSize;
 
@@ -53,17 +52,13 @@ public class MapLayer {
 					int tileX = tile % tilesInRow * tileSize;
 					int tileY = tile / tilesInRow * tileSize;
 
-					ImageElement img = getTileSet().getImgElement();
 					ctx.drawImage(img, tileX, tileY, tileSize, tileSize, x, y, tileSize, tileSize);
 				}
 			}
 		}
+		needRedraw = false;
 	}
-
-	public Context2d getContext() {
-		return ctx;
-	}
-
+	
 	// Paint layer at location x,y with current Brush
 	public void set(int x, int y) {
 		if (!isOutOfBounds(x, y)) {
@@ -73,27 +68,34 @@ public class MapLayer {
 				data[x][y] = brush.getTile();
 			} else {
 				int[][] brushData = brush.getData();
-				int len = brushData[0].length;
-				for (int i = 0; i < brushData.length && x + i < data.length; i++) {
-					System.arraycopy(brushData[i], 0, data[i + x], y, len);
+				
+				int brushWidth = brushData.length;
+				int dataWidth = data.length;
+				int dataHeight = data[0].length;
+				
+				if (x + brushWidth > dataWidth)
+					brushWidth = dataWidth - x;
+				
+				int brushHeight = brushData[0].length;
+				if (y + brushHeight > dataHeight)
+					brushHeight = dataHeight - y;
+				
+				for (int i = 0; i < brushWidth; i++) {
+					// TODO: Add check to fix arrayOutOfBoundsException
+					System.arraycopy(brushData[i], 0, data[i + x], y, brushHeight);
 				}
 			}
 		}
+		needRedraw = true;
 	}
 
 	private boolean isOutOfBounds(int x, int y) {
-		if (x < width && y < height) {
+		if (x < tilesX && y < tilesY) {
 			return false;
 		} else {
 			System.out.println(outOfBoundsErrorMessage);
 			return true;
 		}
-	}
-
-	// Change Layer size to set number of pixels normalized to tile size
-	public void resize(int width, int height) {
-		normalizeDimentionsToTileSize(width, height, getTileSize());
-		initLayer();
 	}
 
 	// Set width and height multiple of tileSize
@@ -102,21 +104,22 @@ public class MapLayer {
 		int remainderHeight = height % tileSize;
 		width -= remainderWidth;
 		height -= remainderHeight;
-		this.width = width;
-		this.height = height;
+		this.tilesX = width;
+		this.tilesY = height;
 	}
 
 	// Initialize Layer data[][] array. If it is already existing, stretch existing.
-	private void initLayer() {
+	private void init() {
 		if (data == null) {
-			data = new int[width][height];
-			for (int i = 0; i < width; i++) {
+			data = new int[tilesX][tilesY];
+			for (int i = 0; i < tilesX; i++) {
 				Arrays.fill(data[i], EMPTY_CELL);
 			}
 		} else {
-			if (width > 0 && height > 0) {
+			if (tilesX > 0 && tilesY > 0) {
+				// TODO: fix this. Right now it erases old data instead of resizing it
 				int buff[][] = new int[1][1];// data.clone();
-				data = new int[width][height];
+				data = new int[tilesX][tilesY];
 				for (int i = 0; i < Math.min(buff.length, data.length); i++) {
 					System.arraycopy(buff[i], 0, data[i], 0, Math.min(buff[i].length, data[i].length));
 				}
@@ -124,6 +127,8 @@ public class MapLayer {
 				System.out.println(zeroWidthHeightErrorMessage);
 			}
 		}
+		needRedraw = true;
+		System.out.println("TileLayer[" + tilesX + "][" + tilesY + "]; created");
 	}
 
 	public void erase(int tileX, int tileY) {
@@ -136,22 +141,15 @@ public class MapLayer {
 				Arrays.fill(data[tileX + i], tileY, tileY + eraserSize, EMPTY_CELL);
 			}
 		}
-	}
-
-	public int getWidth() {
-		return width;
-	}
-
-	public int getHeight() {
-		return height;
+		needRedraw = true;
 	}
 
 	public int getTileSize() {
-		return tileSet.getTileSize();
+		return tileset.getTileSize();
 	}
 
 	public TileSet getTileSet() {
-		return tileSet;
+		return tileset;
 	}
 
 	public String getName() {
@@ -160,5 +158,17 @@ public class MapLayer {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public int[][] getData() {
+		return data;
+	}
+
+	public CanvasLayer getCanvasLayer() {
+		return canvasLayer;
+	}
+
+	public boolean isNeedRedraw() {
+		return needRedraw;
 	}
 }

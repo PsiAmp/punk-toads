@@ -1,4 +1,4 @@
-package toad.client;
+package toad.client.util;
 
 import com.google.gwt.canvas.dom.client.CssColor;
 
